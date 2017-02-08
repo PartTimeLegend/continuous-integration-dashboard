@@ -19,10 +19,10 @@ namespace CIDashboard.Domain.Tests.MappingProfiles
         [SetUp]
         public void Setup()
         {
-            this._fixture = new Fixture()
+            _fixture = new Fixture()
                 .Customize(new AutoFakeItEasyCustomization());
-            this._fixture.Behaviors.Remove(new ThrowingRecursionBehavior());
-            this._fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+            _fixture.Behaviors.Remove(new ThrowingRecursionBehavior());
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
             
             Mapper.Initialize(cfg => cfg.AddProfile<TeamCityProfiler>());
         }
@@ -30,13 +30,14 @@ namespace CIDashboard.Domain.Tests.MappingProfiles
         [Test]
         public void MapsProjetsAndBuildTypesCorrectly()
         {
-            var projects = _fixture
+            IEnumerable<Project> projects = _fixture
                 .Build<Project>()
                 .CreateMany();
 
-            var mappedResult = Mapper.Map<IEnumerable<Project>, IEnumerable<CiProject>>(projects);
+            IEnumerable<Project> enumerable = projects as IList<Project> ?? projects.ToList();
+            IEnumerable<CiProject> mappedResult = Mapper.Map<IEnumerable<Project>, IEnumerable<CiProject>>(enumerable);
 
-            var expectedResult = projects.Select(
+            IEnumerable<CiProject> expectedResult = enumerable.Select(
                 p => new CiProject
                 {
                     CiSource = CiSource.TeamCity,
@@ -61,14 +62,14 @@ namespace CIDashboard.Domain.Tests.MappingProfiles
         [TestCase("FAILURE", CiBuildResultStatus.Failure)]
         public void MapsBuildsCorrectly(string status, CiBuildResultStatus resultStatus)
         {
-            var build = _fixture
+            Build build = _fixture
                 .Build<Build>()
                 .With(b => b.Status, status)
                 .Create();
 
-            var mappedResult = Mapper.Map<Build, CiBuildResult>(build);
+            CiBuildResult mappedResult = Mapper.Map<Build, CiBuildResult>(build);
 
-            var expectedResult = new CiBuildResult
+            CiBuildResult expectedResult = new CiBuildResult
                 {
                     CiSource = CiSource.TeamCity,
                     Id = build.Id,

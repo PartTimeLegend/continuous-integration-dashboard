@@ -13,7 +13,7 @@ namespace CIDashboard.Data
 
         public async Task<IEnumerable<Project>> GetProjects(string username)
         {
-            using (var context = CtxFactory.Create())
+            using (ICiDashboardContext context = CtxFactory.Create())
             {
                 return await context.Projects
                     .Where(p => p.User == username)
@@ -28,7 +28,7 @@ namespace CIDashboard.Data
             return Task.Run(
                 () =>
                 {
-                    using(var context = CtxFactory.Create())
+                    using(ICiDashboardContext context = CtxFactory.Create())
                     {
                         project.User = username;
                         context.Projects.Add(project);
@@ -42,9 +42,9 @@ namespace CIDashboard.Data
 
         public async Task<bool> UpdateProjectName(int projectId, string projectName)
         {
-            using (var context = CtxFactory.Create())
+            using (ICiDashboardContext context = CtxFactory.Create())
             {
-                var project = await context.Projects
+                Project project = await context.Projects
                     .Where(p => p.Id == projectId)
                     .FirstOrDefaultAsync();
 
@@ -59,9 +59,9 @@ namespace CIDashboard.Data
 
         public async Task<bool> UpdateProjectOrder(int projectId, int position)
         {
-            using (var context = CtxFactory.Create())
+            using (ICiDashboardContext context = CtxFactory.Create())
             {
-                var project = await context.Projects
+                Project project = await context.Projects
                     .Where(p => p.Id == projectId)
                     .FirstOrDefaultAsync();
 
@@ -76,9 +76,9 @@ namespace CIDashboard.Data
 
         public async Task<Project> RemoveProject(int projectId)
         {
-            using (var context = CtxFactory.Create())
+            using (ICiDashboardContext context = CtxFactory.Create())
             {
-                var project = await context.Projects
+                Project project = await context.Projects
                     .Where(p => p.Id == projectId)
                     .FirstOrDefaultAsync();
 
@@ -93,9 +93,9 @@ namespace CIDashboard.Data
 
         public async Task<BuildConfig> AddBuildConfigToProject(int projectId, BuildConfig buildConfig)
         {
-            using (var context = CtxFactory.Create())
+            using (ICiDashboardContext context = CtxFactory.Create())
             {
-                var project = await context.Projects
+                Project project = await context.Projects
                     .Where(p => p.Id == projectId)
                     .FirstOrDefaultAsync();
 
@@ -113,9 +113,9 @@ namespace CIDashboard.Data
 
         public async Task<BuildConfig> RemoveBuildConfig(int buildId)
         {
-            using (var context = CtxFactory.Create())
+            using (ICiDashboardContext context = CtxFactory.Create())
             {
-                var build = await context.BuildConfigs
+                BuildConfig build = await context.BuildConfigs
                     .Where(p => p.Id == buildId)
                     .FirstOrDefaultAsync();
 
@@ -130,9 +130,9 @@ namespace CIDashboard.Data
 
         public async Task<bool> UpdateBuildConfigExternalId(int buildId, string buildName, string externalId)
         {
-            using (var context = CtxFactory.Create())
+            using (ICiDashboardContext context = CtxFactory.Create())
             {
-                var build = await context.BuildConfigs
+                BuildConfig build = await context.BuildConfigs
                     .Where(p => p.Id == buildId)
                     .FirstOrDefaultAsync();
 
@@ -148,9 +148,9 @@ namespace CIDashboard.Data
 
         public async Task<bool> UpdateBuildConfigOrder(int buildId, int position)
         {
-            using (var context = CtxFactory.Create())
+            using (ICiDashboardContext context = CtxFactory.Create())
             {
-                var build = await context.BuildConfigs
+                BuildConfig build = await context.BuildConfigs
                     .Where(p => p.Id == buildId)
                     .FirstOrDefaultAsync();
 

@@ -23,8 +23,8 @@ namespace CIDashboard.Web.Application
         {
             try
             {
-                var userProjects = await this.CiDashboardService.GetProjects(username);
-                var mappedUserProjects = Mapper.Map<IEnumerable<Data.Entities.Project>, IEnumerable<Project>>(userProjects);
+                IEnumerable<Data.Entities.Project> userProjects = await CiDashboardService.GetProjects(username);
+                IEnumerable<Project> mappedUserProjects = Mapper.Map<IEnumerable<Data.Entities.Project>, IEnumerable<Project>>(userProjects);
 
                 return mappedUserProjects;
             }
@@ -40,8 +40,8 @@ namespace CIDashboard.Web.Application
         {
             try
             {
-                var allProjectBuilds = await this.CiServerService.GetAllBuildConfigs();
-                var mappedBuilds = Mapper.Map<IEnumerable<CiBuildConfig>, IEnumerable<BuildConfig>>(allProjectBuilds);
+                IEnumerable<CiBuildConfig> allProjectBuilds = await CiServerService.GetAllBuildConfigs();
+                IEnumerable<BuildConfig> mappedBuilds = Mapper.Map<IEnumerable<CiBuildConfig>, IEnumerable<BuildConfig>>(allProjectBuilds);
 
                 return mappedBuilds;
             }
@@ -57,8 +57,8 @@ namespace CIDashboard.Web.Application
         {
             try
             {
-                var lastBuildResult = await this.CiServerService.LastBuildResult(buildId);
-                var mappedBuild = Mapper.Map<CiBuildResult, Build>(lastBuildResult);
+                CiBuildResult lastBuildResult = await CiServerService.LastBuildResult(buildId);
+                Build mappedBuild = Mapper.Map<CiBuildResult, Build>(lastBuildResult);
 
                 return mappedBuild;
             }

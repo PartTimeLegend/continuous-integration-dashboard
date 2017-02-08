@@ -2,12 +2,10 @@
 using System.Linq;
 using System.Security.Principal;
 using System.Threading.Tasks;
-using CIDashboard.Web.Hubs;
-using CIDashboard.Web.Application;
 using CIDashboard.Web.Application.Interfaces;
+using CIDashboard.Web.Hubs;
 using CIDashboard.Web.Models;
 using FakeItEasy;
-using FluentAssertions;
 using Microsoft.AspNet.SignalR.Hubs;
 using NUnit.Framework;
 using Ploeh.AutoFixture;
@@ -23,10 +21,10 @@ namespace CIDashboard.Web.Tests.Hubs
         private IHubCallerConnectionContext<ICiDashboardHub> _fakeClients;
         private ICiDashboardHub _fakeClient;
         private IFixture _fixture;
-        private IConnectionsManager connectionsManager;
-        private IInformationQuery infoQuery;
-        private ICommandProcessor commandProcessor;
-        private IRefreshInformation refreshInfo;
+        private IConnectionsManager _connectionsManager;
+        private IInformationQuery _infoQuery;
+        private ICommandProcessor _commandProcessor;
+        private IRefreshInformation _refreshInfo;
 
         [SetUp]
         public void Setup()
@@ -34,10 +32,10 @@ namespace CIDashboard.Web.Tests.Hubs
             _fixture = new Fixture()
                 .Customize(new AutoFakeItEasyCustomization());
 
-            this.infoQuery = A.Fake<IInformationQuery>();
-            this.connectionsManager = A.Fake<IConnectionsManager>();
-            this.commandProcessor = A.Fake<ICommandProcessor>();
-            this.refreshInfo = A.Fake<IRefreshInformation>();
+            _infoQuery = A.Fake<IInformationQuery>();
+            _connectionsManager = A.Fake<IConnectionsManager>();
+            _commandProcessor = A.Fake<ICommandProcessor>();
+            _refreshInfo = A.Fake<IRefreshInformation>();
             _principal = A.Fake<IPrincipal>();
             _context = A.Fake<HubCallerContext>();
 
@@ -48,26 +46,26 @@ namespace CIDashboard.Web.Tests.Hubs
         [Test]
         public async Task OnConnect_QueriesUserProjectAndBuildConfigs_AndSendMappedInfoToClient_AndTriggersRefreshForThisClient()
         {
-            var username = _fixture.Create<string>();
-            var connectionId = _fixture.Create<string>();
+            string username = _fixture.Create<string>();
+            string connectionId = _fixture.Create<string>();
             A.CallTo(() => _principal.Identity.Name).Returns(username);
             A.CallTo(() => _context.ConnectionId).Returns(connectionId);
             A.CallTo(() => _context.User).Returns(_principal);
 
-            var projects = _fixture.CreateMany<Project>().ToList();
-            A.CallTo(() => this.infoQuery.GetUserProjectsAndBuildConfigs(username))
+            List<Project> projects = _fixture.CreateMany<Project>().ToList();
+            A.CallTo(() => _infoQuery.GetUserProjectsAndBuildConfigs(username))
                 .Returns(projects);
 
             A.CallTo(() => _fakeClients.Client(connectionId)).Returns(_fakeClient);
 
-            var hub = new CiDashboardHub(this.connectionsManager, this.commandProcessor, this.infoQuery, this.refreshInfo) { Context = _context };
+            CiDashboardHub hub = new CiDashboardHub(_connectionsManager, _commandProcessor, _infoQuery, _refreshInfo) { Context = _context };
             hub.Clients = _fakeClients;
             await hub.OnConnected();
 
-            A.CallTo(() => this.infoQuery.GetUserProjectsAndBuildConfigs(username))
+            A.CallTo(() => _infoQuery.GetUserProjectsAndBuildConfigs(username))
                 .MustHaveHappened();
 
-            var buildCiIds = projects
+            List<string> buildCiIds = projects
                 .SelectMany(
                     p => p.Builds
                         .Where(b => !string.IsNullOrEmpty(b.CiExternalId))
@@ -75,11 +73,11 @@ namespace CIDashboard.Web.Tests.Hubs
                 .Select(b => b.CiExternalId)
                 .ToList();
 
-            A.CallTo(() => this.connectionsManager.AddBuildConfigs(connectionId,
+            A.CallTo(() => _connectionsManager.AddBuildConfigs(connectionId,
                 A<IEnumerable<BuildConfig>>.That.Matches(l => !l.Select(b => b.CiExternalId).Except(buildCiIds).Any())))
                 .MustHaveHappened();
 
-            A.CallTo(() => this.refreshInfo.SendRefreshBuildResults(connectionId))
+            A.CallTo(() => _refreshInfo.SendRefreshBuildResults(connectionId))
                 .MustHaveHappened();
 
             A.CallTo(() => _fakeClient
@@ -90,43 +88,43 @@ namespace CIDashboard.Web.Tests.Hubs
         [Test]
         public async Task OnDisconnected_RemovesUserBuilds()
         {
-            var username = _fixture.Create<string>();
-            var connectionId = _fixture.Create<string>();
+            string username = _fixture.Create<string>();
+            string connectionId = _fixture.Create<string>();
             A.CallTo(() => _principal.Identity.Name).Returns(username);
             A.CallTo(() => _context.ConnectionId).Returns(connectionId);
             A.CallTo(() => _context.User).Returns(_principal);
 
-            var hub = new CiDashboardHub(this.connectionsManager, this.commandProcessor, this.infoQuery, this.refreshInfo) { Context = _context };
+            CiDashboardHub hub = new CiDashboardHub(_connectionsManager, _commandProcessor, _infoQuery, _refreshInfo) { Context = _context };
 
             await hub.OnDisconnected(true);
 
-            A.CallTo(() => this.connectionsManager.RemoveAllBuildConfigs(connectionId))
+            A.CallTo(() => _connectionsManager.RemoveAllBuildConfigs(connectionId))
                 .MustHaveHappened();
         }
 
         [Test]
         public async Task OnReconnected_QueriesUserProjectAndBuildConfigs_AndSendMappedInfoToClient()
         {
-            var username = _fixture.Create<string>();
-            var connectionId = _fixture.Create<string>();
+            string username = _fixture.Create<string>();
+            string connectionId = _fixture.Create<string>();
             A.CallTo(() => _principal.Identity.Name).Returns(username);
             A.CallTo(() => _context.ConnectionId).Returns(connectionId);
             A.CallTo(() => _context.User).Returns(_principal);
 
-            var projects = _fixture.CreateMany<Project>().ToList();
-            A.CallTo(() => this.infoQuery.GetUserProjectsAndBuildConfigs(username))
+            List<Project> projects = _fixture.CreateMany<Project>().ToList();
+            A.CallTo(() => _infoQuery.GetUserProjectsAndBuildConfigs(username))
                 .Returns(projects);
 
             A.CallTo(() => _fakeClients.Client(connectionId)).Returns(_fakeClient);
             
-            var hub = new CiDashboardHub(this.connectionsManager, this.commandProcessor, this.infoQuery, this.refreshInfo) { Context = _context };
+            CiDashboardHub hub = new CiDashboardHub(_connectionsManager, _commandProcessor, _infoQuery, _refreshInfo) { Context = _context };
             hub.Clients = _fakeClients;
             await hub.OnReconnected();
 
-            A.CallTo(() => this.infoQuery.GetUserProjectsAndBuildConfigs(username))
+            A.CallTo(() => _infoQuery.GetUserProjectsAndBuildConfigs(username))
                 .MustHaveHappened();
 
-            var buildCiIds = projects
+            List<string> buildCiIds = projects
                 .SelectMany(
                     p => p.Builds
                         .Where(b => !string.IsNullOrEmpty(b.CiExternalId))
@@ -134,7 +132,7 @@ namespace CIDashboard.Web.Tests.Hubs
                 .Select(b => b.CiExternalId)
                 .ToList();
 
-            A.CallTo(() => this.connectionsManager.AddBuildConfigs(connectionId,
+            A.CallTo(() => _connectionsManager.AddBuildConfigs(connectionId,
                 A<IEnumerable<BuildConfig>>.That.Matches(l => !l.Select(b => b.CiExternalId).Except(buildCiIds).Any())))
                 .MustHaveHappened();
 
@@ -146,34 +144,34 @@ namespace CIDashboard.Web.Tests.Hubs
         [Test]
         public async Task RequestRefresh_ShouldCallsSendRefreshBuildResultsForConnectionIdOnly()
         {
-            var connectionId = _fixture.Create<string>();
+            string connectionId = _fixture.Create<string>();
             A.CallTo(() => _context.ConnectionId).Returns(connectionId);
 
-            var hub = new CiDashboardHub(this.connectionsManager, this.commandProcessor, this.infoQuery, this.refreshInfo) { Context = _context };
+            CiDashboardHub hub = new CiDashboardHub(_connectionsManager, _commandProcessor, _infoQuery, _refreshInfo) { Context = _context };
 
             await hub.RequestRefresh();
 
-            A.CallTo(() => this.refreshInfo.SendRefreshBuildResults(connectionId))
+            A.CallTo(() => _refreshInfo.SendRefreshBuildResults(connectionId))
                 .MustHaveHappened();
         }
 
         [Test]
         public async Task RequestAllProjectBuilds_QueriesForAllProjectBuildConfigs_AndSendMappedInfoToClient()
         {
-            var connectionId = _fixture.Create<string>();
+            string connectionId = _fixture.Create<string>();
             A.CallTo(() => _context.ConnectionId).Returns(connectionId);
 
-            var builds = _fixture.CreateMany<BuildConfig>().ToList();
-            A.CallTo(() => this.infoQuery.GetAllProjectBuildConfigs())
+            List<BuildConfig> builds = _fixture.CreateMany<BuildConfig>().ToList();
+            A.CallTo(() => _infoQuery.GetAllProjectBuildConfigs())
                 .Returns(builds);
 
             A.CallTo(() => _fakeClients.Client(connectionId)).Returns(_fakeClient);
 
-            var hub = new CiDashboardHub(this.connectionsManager, this.commandProcessor, this.infoQuery, this.refreshInfo) { Context = _context };
+            CiDashboardHub hub = new CiDashboardHub(_connectionsManager, _commandProcessor, _infoQuery, _refreshInfo) { Context = _context };
             hub.Clients = _fakeClients;
             await hub.RequestAllProjectBuilds();
 
-            A.CallTo(() => this.infoQuery.GetAllProjectBuildConfigs())
+            A.CallTo(() => _infoQuery.GetAllProjectBuildConfigs())
                 .MustHaveHappened();
 
             A.CallTo(() => _fakeClient
@@ -184,25 +182,25 @@ namespace CIDashboard.Web.Tests.Hubs
         [Test]
         public async Task AddNewProject_AddsNewProject_AndSendMappedInfoToClient()
         {
-            var username = _fixture.Create<string>();
-            var connectionId = _fixture.Create<string>();
+            string username = _fixture.Create<string>();
+            string connectionId = _fixture.Create<string>();
             A.CallTo(() => _principal.Identity.Name).Returns(username);
             A.CallTo(() => _context.ConnectionId).Returns(connectionId);
             A.CallTo(() => _context.User).Returns(_principal);
 
-            var project = _fixture.Create<Project>();
-            var resultProject = _fixture.Create<Project>();
+            Project project = _fixture.Create<Project>();
+            Project resultProject = _fixture.Create<Project>();
 
-            A.CallTo(() => this.commandProcessor.AddNewProject(username, project))
+            A.CallTo(() => _commandProcessor.AddNewProject(username, project))
                 .Returns(resultProject);
 
             A.CallTo(() => _fakeClients.Client(connectionId)).Returns(_fakeClient);
 
-            var hub = new CiDashboardHub(this.connectionsManager, this.commandProcessor, this.infoQuery, this.refreshInfo) { Context = _context };
+            CiDashboardHub hub = new CiDashboardHub(_connectionsManager, _commandProcessor, _infoQuery, _refreshInfo) { Context = _context };
             hub.Clients = _fakeClients;
             await hub.AddNewProject(project);
 
-            A.CallTo(() => this.commandProcessor.AddNewProject(username, project))
+            A.CallTo(() => _commandProcessor.AddNewProject(username, project))
                 .MustHaveHappened();
 
             A.CallTo(() => hub.Clients.Client(connectionId)
@@ -213,24 +211,24 @@ namespace CIDashboard.Web.Tests.Hubs
         [Test]
         public async Task UpdateProjectName_UpdatesProject_AndSendFeedbackMessageToClient()
         {
-            var username = _fixture.Create<string>();
-            var connectionId = _fixture.Create<string>();
+            string username = _fixture.Create<string>();
+            string connectionId = _fixture.Create<string>();
             A.CallTo(() => _principal.Identity.Name).Returns(username);
             A.CallTo(() => _context.ConnectionId).Returns(connectionId);
             A.CallTo(() => _context.User).Returns(_principal);
 
-            var project = _fixture.Create<Project>();
+            Project project = _fixture.Create<Project>();
 
-            A.CallTo(() => this.commandProcessor.UpdateProjectName(project.Id, project.Name))
+            A.CallTo(() => _commandProcessor.UpdateProjectName(project.Id, project.Name))
                 .Returns(true);
 
             A.CallTo(() => _fakeClients.Client(connectionId)).Returns(_fakeClient);
             
-            var hub = new CiDashboardHub(this.connectionsManager, this.commandProcessor, this.infoQuery, this.refreshInfo) { Context = _context };
+            CiDashboardHub hub = new CiDashboardHub(_connectionsManager, _commandProcessor, _infoQuery, _refreshInfo) { Context = _context };
             hub.Clients = _fakeClients;
             await hub.UpdateProjectName(project.Id, project.Name);
 
-            A.CallTo(() => this.commandProcessor.UpdateProjectName(project.Id, project.Name))
+            A.CallTo(() => _commandProcessor.UpdateProjectName(project.Id, project.Name))
                 .MustHaveHappened();
 
             A.CallTo(() => _fakeClient.SendMessage(
@@ -241,29 +239,29 @@ namespace CIDashboard.Web.Tests.Hubs
         [Test]
         public async Task RemoveProject_RemovesProject_AndUpdatesBuildsPerConnection_AndSendFeedbackMessageToClient()
         {
-            var username = _fixture.Create<string>();
-            var connectionId = _fixture.Create<string>();
+            string username = _fixture.Create<string>();
+            string connectionId = _fixture.Create<string>();
             A.CallTo(() => _principal.Identity.Name).Returns(username);
             A.CallTo(() => _context.ConnectionId).Returns(connectionId);
             A.CallTo(() => _context.User).Returns(_principal);
 
-            var project = _fixture.Create<Project>();
+            Project project = _fixture.Create<Project>();
 
-            A.CallTo(() => this.commandProcessor.RemoveProject(project.Id))
+            A.CallTo(() => _commandProcessor.RemoveProject(project.Id))
                 .Returns(project);
 
             A.CallTo(() => _fakeClients.Client(connectionId)).Returns(_fakeClient);
             
-            var hub = new CiDashboardHub(this.connectionsManager, this.commandProcessor, this.infoQuery, this.refreshInfo) { Context = _context };
+            CiDashboardHub hub = new CiDashboardHub(_connectionsManager, _commandProcessor, _infoQuery, _refreshInfo) { Context = _context };
             hub.Clients = _fakeClients;
             await hub.RemoveProject(project.Id);
 
-            A.CallTo(() => this.commandProcessor.RemoveProject(project.Id))
+            A.CallTo(() => _commandProcessor.RemoveProject(project.Id))
                 .MustHaveHappened();
 
-            foreach(var buildConfig in project.Builds)
+            foreach(BuildConfig buildConfig in project.Builds)
             {
-                A.CallTo(() => this.connectionsManager.RemoveBuildConfig(connectionId, buildConfig))
+                A.CallTo(() => _connectionsManager.RemoveBuildConfig(connectionId, buildConfig))
                     .MustHaveHappened();
             }
 
@@ -275,26 +273,26 @@ namespace CIDashboard.Web.Tests.Hubs
         [Test]
         public async Task AddBuildToProject_AddBuild_AndUpdatesBuildsPerConnection_AndSendMappedInfoToClient()
         {
-            var connectionId = _fixture.Create<string>();
+            string connectionId = _fixture.Create<string>();
             A.CallTo(() => _context.ConnectionId).Returns(connectionId);
 
-            var project = _fixture.Create<Project>();
+            Project project = _fixture.Create<Project>();
 
-            var build = _fixture.Create<BuildConfig>();
-            var newBuild = _fixture.Create<BuildConfig>();
-            A.CallTo(() => this.commandProcessor.AddBuildConfigToProject(project.Id, build))
+            BuildConfig build = _fixture.Create<BuildConfig>();
+            BuildConfig newBuild = _fixture.Create<BuildConfig>();
+            A.CallTo(() => _commandProcessor.AddBuildConfigToProject(project.Id, build))
                 .Returns(newBuild);
 
             A.CallTo(() => _fakeClients.Client(connectionId)).Returns(_fakeClient);
 
-            var hub = new CiDashboardHub(this.connectionsManager, this.commandProcessor, this.infoQuery, this.refreshInfo) { Context = _context };
+            CiDashboardHub hub = new CiDashboardHub(_connectionsManager, _commandProcessor, _infoQuery, _refreshInfo) { Context = _context };
             hub.Clients = _fakeClients;
             await hub.AddBuildToProject(project.Id, build);
 
-            A.CallTo(() => this.commandProcessor.AddBuildConfigToProject(project.Id, build))
+            A.CallTo(() => _commandProcessor.AddBuildConfigToProject(project.Id, build))
                 .MustHaveHappened();
 
-            A.CallTo(() => this.connectionsManager.UpdateBuildConfigs(connectionId,
+            A.CallTo(() => _connectionsManager.UpdateBuildConfigs(connectionId,
                 A<IEnumerable<BuildConfig>>.That.Matches(l => l.First() == newBuild)))
                 .MustHaveHappened();
 
@@ -306,27 +304,27 @@ namespace CIDashboard.Web.Tests.Hubs
         [Test]
         public async Task RemoveBuildConfig_RemovesBuildConfig_AndUpdatesBuildsPerConnection_AndSendFeedbackMessageToClient()
         {
-            var username = _fixture.Create<string>();
-            var connectionId = _fixture.Create<string>();
+            string username = _fixture.Create<string>();
+            string connectionId = _fixture.Create<string>();
             A.CallTo(() => _principal.Identity.Name).Returns(username);
             A.CallTo(() => _context.ConnectionId).Returns(connectionId);
             A.CallTo(() => _context.User).Returns(_principal);
 
-            var build = _fixture.Create<BuildConfig>();
+            BuildConfig build = _fixture.Create<BuildConfig>();
 
-            A.CallTo(() => this.commandProcessor.RemoveBuildConfig(build.Id))
+            A.CallTo(() => _commandProcessor.RemoveBuildConfig(build.Id))
                 .Returns(build);
 
             A.CallTo(() => _fakeClients.Client(connectionId)).Returns(_fakeClient);
 
-            var hub = new CiDashboardHub(this.connectionsManager, this.commandProcessor, this.infoQuery, this.refreshInfo) { Context = _context };
+            CiDashboardHub hub = new CiDashboardHub(_connectionsManager, _commandProcessor, _infoQuery, _refreshInfo) { Context = _context };
             hub.Clients = _fakeClients;
             await hub.RemoveBuild(build.Id);
 
-            A.CallTo(() => this.commandProcessor.RemoveBuildConfig(build.Id))
+            A.CallTo(() => _commandProcessor.RemoveBuildConfig(build.Id))
                 .MustHaveHappened();
 
-            A.CallTo(() => this.connectionsManager.RemoveBuildConfig(connectionId, build))
+            A.CallTo(() => _connectionsManager.RemoveBuildConfig(connectionId, build))
                 .MustHaveHappened();
 
             A.CallTo(() => _fakeClient.SendMessage(
@@ -337,27 +335,27 @@ namespace CIDashboard.Web.Tests.Hubs
         [Test]
         public async Task UpdateBuildConfigExternalId_UpdatesBuildConfig_AndUpdatesBuildsPerConnection_AndSendFeedbackMessageToClient()
         {
-            var username = _fixture.Create<string>();
-            var connectionId = _fixture.Create<string>();
+            string username = _fixture.Create<string>();
+            string connectionId = _fixture.Create<string>();
             A.CallTo(() => _principal.Identity.Name).Returns(username);
             A.CallTo(() => _context.ConnectionId).Returns(connectionId);
             A.CallTo(() => _context.User).Returns(_principal);
 
-            var build = _fixture.Create<BuildConfig>();
+            BuildConfig build = _fixture.Create<BuildConfig>();
 
-            A.CallTo(() => this.commandProcessor.UpdateBuildConfigExternalId(build.Id, build.Name, build.CiExternalId))
+            A.CallTo(() => _commandProcessor.UpdateBuildConfigExternalId(build.Id, build.Name, build.CiExternalId))
                 .Returns(true);
 
             A.CallTo(() => _fakeClients.Client(connectionId)).Returns(_fakeClient);
 
-            var hub = new CiDashboardHub(this.connectionsManager, this.commandProcessor, this.infoQuery, this.refreshInfo) { Context = _context };
+            CiDashboardHub hub = new CiDashboardHub(_connectionsManager, _commandProcessor, _infoQuery, _refreshInfo) { Context = _context };
             hub.Clients = _fakeClients;
             await hub.UpdateBuildConfigExternalId(build.Id, build.Name, build.CiExternalId);
 
-            A.CallTo(() => this.commandProcessor.UpdateBuildConfigExternalId(build.Id, build.Name, build.CiExternalId))
+            A.CallTo(() => _commandProcessor.UpdateBuildConfigExternalId(build.Id, build.Name, build.CiExternalId))
                 .MustHaveHappened();
 
-            A.CallTo(() => this.connectionsManager.UpdateBuildConfigs(connectionId,
+            A.CallTo(() => _connectionsManager.UpdateBuildConfigs(connectionId,
                 A<IEnumerable<BuildConfig>>.That.Matches(l => l.First().CiExternalId == build.CiExternalId)))
                 .MustHaveHappened();
 

@@ -1,0 +1,1 @@
+﻿///<binding BeforeBuild='Update all files' Clean='Clean output files, Update all files' ProjectOpened='Update all files' />

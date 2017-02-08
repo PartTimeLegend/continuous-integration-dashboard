@@ -21,10 +21,10 @@ namespace CIDashboard.Data
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
-            this.Configuration.LazyLoadingEnabled = false;
-            this.Configuration.ProxyCreationEnabled = false;
-            this.Configuration.AutoDetectChangesEnabled = true;
-            this.Configuration.ValidateOnSaveEnabled = true;
+            Configuration.LazyLoadingEnabled = false;
+            Configuration.ProxyCreationEnabled = false;
+            Configuration.AutoDetectChangesEnabled = true;
+            Configuration.ValidateOnSaveEnabled = true;
             
             modelBuilder.Conventions.Remove<PluralizingTableNameConvention>();
 

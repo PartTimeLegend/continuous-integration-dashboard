@@ -5,17 +5,18 @@ namespace CIDashboard.Data
 {
     public class CiDashboardContextBootstrap : ICiDashboardContextBootstrap
     {
-        private readonly ICiDashboardContextFactory factory;
+        private readonly ICiDashboardContextFactory _factory;
 
         public CiDashboardContextBootstrap(ICiDashboardContextFactory factory)
         {
-            this.factory = factory;
+            _factory = factory;
         }
 
         public void InitiateDatabase()
         {
-            using (var ctx = factory.Create())
+            using (ICiDashboardContext ctx = _factory.Create())
             {
+                // ReSharper disable once ReturnValueOfPureMethodIsNotUsed
                 ctx.Projects.FirstOrDefault();
             }
         }

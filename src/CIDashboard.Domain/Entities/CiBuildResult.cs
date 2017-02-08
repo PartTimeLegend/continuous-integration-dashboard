@@ -48,7 +48,7 @@ namespace CIDashboard.Domain.Entities
         {
             get
             {
-                return this.NumberTestPassed + this.NumberTestFailed + this.NumberTestIgnored;
+                return NumberTestPassed + NumberTestFailed + NumberTestIgnored;
             }
         }
 
@@ -60,10 +60,10 @@ namespace CIDashboard.Domain.Entities
         {
             get
             {
-                return this.NumberStatementsTotal == 0
+                return NumberStatementsTotal == 0
                     ? 0
                     : Math.Round(
-                        (this.NumberStatementsCovered / (double)this.NumberStatementsTotal) * 100,
+                        (NumberStatementsCovered / (double)NumberStatementsTotal) * 100,
                         2);
             }
         }

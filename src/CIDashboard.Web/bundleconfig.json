@@ -1,0 +1,32 @@
+﻿[
+  {
+    "outputFileName": "Content/jasmine.min.css",
+    "inputFiles": [
+      "Content/jasmine.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/select.min.css",
+    "inputFiles": [
+      "Content/select.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/select2.min.css",
+    "inputFiles": [
+      "Content/select2.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/Site.min.css",
+    "inputFiles": [
+      "Content/Site.css"
+    ]
+  },
+  {
+    "outputFileName": "Content/xeditable.min.css",
+    "inputFiles": [
+      "Content/xeditable.css"
+    ]
+  }
+]

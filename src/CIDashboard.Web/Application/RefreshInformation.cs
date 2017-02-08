@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using CIDashboard.Web.Hubs;
 using CIDashboard.Web.Application.Interfaces;
+using CIDashboard.Web.Hubs;
 using CIDashboard.Web.Models;
 using Microsoft.AspNet.SignalR;
 using Serilog;
@@ -22,10 +22,10 @@ namespace CIDashboard.Web.Application
         {
             try
             {
-                var hubContext = GlobalHost.ConnectionManager.GetHubContext<CiDashboardHub>();
+                IHubContext hubContext = GlobalHost.ConnectionManager.GetHubContext<CiDashboardHub>();
                 
-                var connectionIdToRefresh = string.IsNullOrEmpty(connectionId)
-                    ? this.ConnectionsManager.BuildsPerConnId.Keys
+                ICollection<string> connectionIdToRefresh = string.IsNullOrEmpty(connectionId)
+                    ? ConnectionsManager.BuildsPerConnId.Keys
                     : new List<string> { connectionId };
 
                 Parallel.ForEach(connectionIdToRefresh,
@@ -37,11 +37,11 @@ namespace CIDashboard.Web.Application
                         hubContext.Clients.Client(connId).StartRefresh(new RefreshStatus { Status = "start" });
                     });
 
-                var buildsToRefresh = string.IsNullOrEmpty(connectionId)
-                    ? this.ConnectionsManager.BuildsToBeRefreshed.Keys
-                    : this.ConnectionsManager.BuildsPerConnId[connectionId];
-                var buildsToRetrieve = buildsToRefresh
-                    .Select(buildId => this.GetLastBuildResult(hubContext, connectionId, buildId))
+                ICollection<string> buildsToRefresh = string.IsNullOrEmpty(connectionId)
+                    ? ConnectionsManager.BuildsToBeRefreshed.Keys
+                    : ConnectionsManager.BuildsPerConnId[connectionId];
+                List<Task> buildsToRetrieve = buildsToRefresh
+                    .Select(buildId => GetLastBuildResult(hubContext, connectionId, buildId))
                     .ToList();
 
                 await Task.WhenAll(buildsToRetrieve);
@@ -56,20 +56,20 @@ namespace CIDashboard.Web.Application
         // only needed because only Hangfire pro supports async calls
         public void SendRefreshBuildResultsSync()
         {
-            this.SendRefreshBuildResults(null).Wait();
+            SendRefreshBuildResults(null).Wait();
         }
 
         private async Task GetLastBuildResult(IHubContext hubContext, string connectionId, string buildId)
         {
             try
             {
-                var lastBuildResult = await this.InfoQuery.GetLastBuildResult(buildId);
+                Build lastBuildResult = await InfoQuery.GetLastBuildResult(buildId);
 
-                var connIds = string.IsNullOrEmpty(connectionId)
-                    ? this.ConnectionsManager.BuildsPerConnId.Where(b => b.Value.Contains(lastBuildResult.CiExternalId)).Select(d => d.Key)
+                IEnumerable<string> connIds = string.IsNullOrEmpty(connectionId)
+                    ? ConnectionsManager.BuildsPerConnId.Where(b => b.Value.Contains(lastBuildResult.CiExternalId)).Select(d => d.Key)
                     : new List<string> { connectionId };
 
-                foreach (var connId in connIds)
+                foreach (string connId in connIds)
                 {
                     Logger.Debug(
                         "Sending build result for {buildId} to {connectionId}",

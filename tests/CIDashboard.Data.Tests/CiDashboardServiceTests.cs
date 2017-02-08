@@ -1,4 +1,5 @@
-﻿using System.Data.Entity;
+﻿using System.Collections.Generic;
+using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Threading.Tasks;
@@ -28,12 +29,12 @@ namespace CIDashboard.Data.Tests
         public async Task GetProjects_ReturnCorrectData()
         {
             _fixture.Customize<BuildConfig>(c => c.Without(f => f.Project));
-            var projects = _fixture
+            IQueryable<Project> projects = _fixture
                 .CreateMany<Project>()
                 .AsQueryable();
-            var username = projects.First().User;
+            string username = projects.First().User;
 
-            var projectsSet = A.Fake<DbSet<Project>>(builder => builder
+            DbSet<Project> projectsSet = A.Fake<DbSet<Project>>(builder => builder
                 .Implements(typeof(IQueryable<Project>))
                 .Implements(typeof(IDbAsyncEnumerable<Project>)));
             A.CallTo(() => ((IDbAsyncEnumerable<Project>)projectsSet).GetAsyncEnumerator())
@@ -44,18 +45,18 @@ namespace CIDashboard.Data.Tests
             A.CallTo(() => ((IQueryable<Project>)projectsSet).ElementType).Returns(projects.ElementType);
             A.CallTo(() => ((IQueryable<Project>)projectsSet).GetEnumerator()).Returns(projects.GetEnumerator());
 
-            var context = A.Fake<ICiDashboardContext>();
+            ICiDashboardContext context = A.Fake<ICiDashboardContext>();
             A.CallTo(() => context.Projects).Returns(projectsSet);
 
-            var factory = A.Fake<ICiDashboardContextFactory>();
+            ICiDashboardContextFactory factory = A.Fake<ICiDashboardContextFactory>();
             A.CallTo(() => factory.Create()).Returns(context);
 
             _fixture.Inject(factory);
             _fixture.Inject(context);
 
-            var service = _fixture.Create<CiDashboardService>();
+            CiDashboardService service = _fixture.Create<CiDashboardService>();
 
-            var result = await service.GetProjects(username);
+            IEnumerable<Project> result = await service.GetProjects(username);
 
             result.Should()
                 .NotBeNull()
@@ -67,27 +68,27 @@ namespace CIDashboard.Data.Tests
         public async Task AddProject_ReturnCorrectData()
         {
             _fixture.Customize<BuildConfig>(c => c.Without(f => f.Project));
-            var projects = _fixture
+            IQueryable<Project> projects = _fixture
                 .CreateMany<Project>()
                 .AsQueryable();
-            var username = projects.First().User;
+            string username = projects.First().User;
 
-            var projectsSet = A.Fake<DbSet<Project>>(builder => builder
+            DbSet<Project> projectsSet = A.Fake<DbSet<Project>>(builder => builder
                 .Implements(typeof(IQueryable<Project>))
                 .Implements(typeof(IDbAsyncEnumerable<Project>)));
 
-            var context = A.Fake<ICiDashboardContext>();
+            ICiDashboardContext context = A.Fake<ICiDashboardContext>();
             A.CallTo(() => context.Projects).Returns(projectsSet);
 
-            var factory = A.Fake<ICiDashboardContextFactory>();
+            ICiDashboardContextFactory factory = A.Fake<ICiDashboardContextFactory>();
             A.CallTo(() => factory.Create()).Returns(context);
 
             _fixture.Inject(factory);
             _fixture.Inject(context);
 
-            var service = _fixture.Create<CiDashboardService>();
+            CiDashboardService service = _fixture.Create<CiDashboardService>();
 
-            var project = new Project { Name = "test" };
+            Project project = new Project { Name = "test" };
             await service.AddProject(username, project);
 
             A.CallTo(() => projectsSet.Add(A<Project>.That.Matches(p => p.Name == project.Name && p.User == username)))
@@ -101,12 +102,12 @@ namespace CIDashboard.Data.Tests
         public async Task UpdateProjectName_ReturnsProjectUpdatedWithNewName()
         {
             _fixture.Customize<BuildConfig>(c => c.Without(f => f.Project));
-            var projects = _fixture
+            IQueryable<Project> projects = _fixture
                 .CreateMany<Project>()
                 .AsQueryable();
-            var project = projects.First();
+            Project project = projects.First();
 
-            var projectsSet = A.Fake<DbSet<Project>>(builder => builder
+            DbSet<Project> projectsSet = A.Fake<DbSet<Project>>(builder => builder
                 .Implements(typeof(IQueryable<Project>))
                 .Implements(typeof(IDbAsyncEnumerable<Project>)));
             A.CallTo(() => ((IDbAsyncEnumerable<Project>)projectsSet).GetAsyncEnumerator())
@@ -117,19 +118,19 @@ namespace CIDashboard.Data.Tests
             A.CallTo(() => ((IQueryable<Project>)projectsSet).ElementType).Returns(projects.ElementType);
             A.CallTo(() => ((IQueryable<Project>)projectsSet).GetEnumerator()).Returns(projects.GetEnumerator());
 
-            var context = A.Fake<ICiDashboardContext>();
+            ICiDashboardContext context = A.Fake<ICiDashboardContext>();
             A.CallTo(() => context.Projects).Returns(projectsSet);
 
-            var factory = A.Fake<ICiDashboardContextFactory>();
+            ICiDashboardContextFactory factory = A.Fake<ICiDashboardContextFactory>();
             A.CallTo(() => factory.Create()).Returns(context);
 
             _fixture.Inject(factory);
             _fixture.Inject(context);
 
-            var service = _fixture.Create<CiDashboardService>();
+            CiDashboardService service = _fixture.Create<CiDashboardService>();
 
-            var newName = _fixture.Create<string>();
-            var result = await service.UpdateProjectName(project.Id, newName);
+            string newName = _fixture.Create<string>();
+            bool result = await service.UpdateProjectName(project.Id, newName);
 
             A.CallTo(() => context.SaveChanges())
                 .MustHaveHappened();
@@ -145,12 +146,12 @@ namespace CIDashboard.Data.Tests
         public async Task UpdateProjectOrder_ReturnsProjectUpdatedWithNewOrder()
         {
             _fixture.Customize<BuildConfig>(c => c.Without(f => f.Project));
-            var projects = _fixture
+            IQueryable<Project> projects = _fixture
                 .CreateMany<Project>()
                 .AsQueryable();
-            var project = projects.First();
+            Project project = projects.First();
 
-            var projectsSet = A.Fake<DbSet<Project>>(builder => builder
+            DbSet<Project> projectsSet = A.Fake<DbSet<Project>>(builder => builder
                 .Implements(typeof(IQueryable<Project>))
                 .Implements(typeof(IDbAsyncEnumerable<Project>)));
             A.CallTo(() => ((IDbAsyncEnumerable<Project>)projectsSet).GetAsyncEnumerator())
@@ -161,19 +162,19 @@ namespace CIDashboard.Data.Tests
             A.CallTo(() => ((IQueryable<Project>)projectsSet).ElementType).Returns(projects.ElementType);
             A.CallTo(() => ((IQueryable<Project>)projectsSet).GetEnumerator()).Returns(projects.GetEnumerator());
 
-            var context = A.Fake<ICiDashboardContext>();
+            ICiDashboardContext context = A.Fake<ICiDashboardContext>();
             A.CallTo(() => context.Projects).Returns(projectsSet);
 
-            var factory = A.Fake<ICiDashboardContextFactory>();
+            ICiDashboardContextFactory factory = A.Fake<ICiDashboardContextFactory>();
             A.CallTo(() => factory.Create()).Returns(context);
 
             _fixture.Inject(factory);
             _fixture.Inject(context);
 
-            var service = _fixture.Create<CiDashboardService>();
+            CiDashboardService service = _fixture.Create<CiDashboardService>();
 
-            var newPosition = _fixture.Create<int>();
-            var result = await service.UpdateProjectOrder(project.Id, newPosition);
+            int newPosition = _fixture.Create<int>();
+            bool result = await service.UpdateProjectOrder(project.Id, newPosition);
 
             A.CallTo(() => context.SaveChanges())
                 .MustHaveHappened();
@@ -190,12 +191,12 @@ namespace CIDashboard.Data.Tests
         public async Task RemoveProject_ShouldRemoveTheProjectFromDatastore_AndReturnRemovedProject()
         {
             _fixture.Customize<BuildConfig>(c => c.Without(f => f.Project));
-            var projects = _fixture
+            IQueryable<Project> projects = _fixture
                 .CreateMany<Project>()
                 .AsQueryable();
-            var project = projects.First();
+            Project project = projects.First();
 
-            var projectsSet = A.Fake<DbSet<Project>>(builder => builder
+            DbSet<Project> projectsSet = A.Fake<DbSet<Project>>(builder => builder
                 .Implements(typeof(IQueryable<Project>))
                 .Implements(typeof(IDbAsyncEnumerable<Project>)));
             A.CallTo(() => ((IDbAsyncEnumerable<Project>)projectsSet).GetAsyncEnumerator())
@@ -206,18 +207,18 @@ namespace CIDashboard.Data.Tests
             A.CallTo(() => ((IQueryable<Project>)projectsSet).ElementType).Returns(projects.ElementType);
             A.CallTo(() => ((IQueryable<Project>)projectsSet).GetEnumerator()).Returns(projects.GetEnumerator());
 
-            var context = A.Fake<ICiDashboardContext>();
+            ICiDashboardContext context = A.Fake<ICiDashboardContext>();
             A.CallTo(() => context.Projects).Returns(projectsSet);
 
-            var factory = A.Fake<ICiDashboardContextFactory>();
+            ICiDashboardContextFactory factory = A.Fake<ICiDashboardContextFactory>();
             A.CallTo(() => factory.Create()).Returns(context);
 
             _fixture.Inject(factory);
             _fixture.Inject(context);
 
-            var service = _fixture.Create<CiDashboardService>();
+            CiDashboardService service = _fixture.Create<CiDashboardService>();
 
-            var result = await service.RemoveProject(project.Id);
+            Project result = await service.RemoveProject(project.Id);
 
             A.CallTo(() => context.SaveChanges())
                 .MustHaveHappened();
@@ -234,12 +235,12 @@ namespace CIDashboard.Data.Tests
         public async Task AddBuildConfigToProject_ShouldAddTheNewBuildConfigToProject()
         {
             _fixture.Customize<BuildConfig>(c => c.Without(f => f.Project));
-            var projects = _fixture
+            IQueryable<Project> projects = _fixture
                 .CreateMany<Project>()
                 .AsQueryable();
-            var project = projects.First();
+            Project project = projects.First();
 
-            var projectsSet = A.Fake<DbSet<Project>>(builder => builder
+            DbSet<Project> projectsSet = A.Fake<DbSet<Project>>(builder => builder
                 .Implements(typeof(IQueryable<Project>))
                 .Implements(typeof(IDbAsyncEnumerable<Project>)));
             A.CallTo(() => ((IDbAsyncEnumerable<Project>)projectsSet).GetAsyncEnumerator())
@@ -250,21 +251,21 @@ namespace CIDashboard.Data.Tests
             A.CallTo(() => ((IQueryable<Project>)projectsSet).ElementType).Returns(projects.ElementType);
             A.CallTo(() => ((IQueryable<Project>)projectsSet).GetEnumerator()).Returns(projects.GetEnumerator());
 
-            var context = A.Fake<ICiDashboardContext>();
+            ICiDashboardContext context = A.Fake<ICiDashboardContext>();
             A.CallTo(() => context.Projects).Returns(projectsSet);
 
-            var factory = A.Fake<ICiDashboardContextFactory>();
+            ICiDashboardContextFactory factory = A.Fake<ICiDashboardContextFactory>();
             A.CallTo(() => factory.Create()).Returns(context);
 
             _fixture.Inject(factory);
             _fixture.Inject(context);
 
-            var build = _fixture
+            BuildConfig build = _fixture
                 .Create<BuildConfig>();
 
-            var service = _fixture.Create<CiDashboardService>();
+            CiDashboardService service = _fixture.Create<CiDashboardService>();
 
-            var result = await service.AddBuildConfigToProject(project.Id, build);
+            BuildConfig result = await service.AddBuildConfigToProject(project.Id, build);
 
             A.CallTo(() => context.SaveChanges())
                 .MustHaveHappened();
@@ -277,12 +278,12 @@ namespace CIDashboard.Data.Tests
         public async Task RemoveBuildConfig_ShouldRemoveTheBuildConfigFromDatastore_AndReturnRemovedBuildConfig()
         {
             _fixture.Customize<BuildConfig>(c => c.Without(f => f.Project));
-            var builds = _fixture
+            IQueryable<BuildConfig> builds = _fixture
                 .CreateMany<BuildConfig>()
                 .AsQueryable();
-            var build = builds.First();
+            BuildConfig build = builds.First();
 
-            var buildsSet = A.Fake<DbSet<BuildConfig>>(builder => builder
+            DbSet<BuildConfig> buildsSet = A.Fake<DbSet<BuildConfig>>(builder => builder
                 .Implements(typeof(IQueryable<BuildConfig>))
                 .Implements(typeof(IDbAsyncEnumerable<BuildConfig>)));
             A.CallTo(() => ((IDbAsyncEnumerable<BuildConfig>)buildsSet).GetAsyncEnumerator())
@@ -293,18 +294,18 @@ namespace CIDashboard.Data.Tests
             A.CallTo(() => ((IQueryable<BuildConfig>)buildsSet).ElementType).Returns(builds.ElementType);
             A.CallTo(() => ((IQueryable<BuildConfig>)buildsSet).GetEnumerator()).Returns(builds.GetEnumerator());
 
-            var context = A.Fake<ICiDashboardContext>();
+            ICiDashboardContext context = A.Fake<ICiDashboardContext>();
             A.CallTo(() => context.BuildConfigs).Returns(buildsSet);
 
-            var factory = A.Fake<ICiDashboardContextFactory>();
+            ICiDashboardContextFactory factory = A.Fake<ICiDashboardContextFactory>();
             A.CallTo(() => factory.Create()).Returns(context);
 
             _fixture.Inject(factory);
             _fixture.Inject(context);
 
-            var service = _fixture.Create<CiDashboardService>();
+            CiDashboardService service = _fixture.Create<CiDashboardService>();
 
-            var result = await service.RemoveBuildConfig(build.Id);
+            BuildConfig result = await service.RemoveBuildConfig(build.Id);
 
             A.CallTo(() => context.SaveChanges())
                 .MustHaveHappened();
@@ -321,12 +322,12 @@ namespace CIDashboard.Data.Tests
         public async Task UpdateBuildConfigCiExternalId_ReturnsBuildConfigUpdatedWithNewNameAndCiExternalId()
         {
             _fixture.Customize<BuildConfig>(c => c.Without(f => f.Project));
-            var builds = _fixture
+            IQueryable<BuildConfig> builds = _fixture
                 .CreateMany<BuildConfig>()
                 .AsQueryable();
-            var build = builds.First();
+            BuildConfig build = builds.First();
 
-            var buildsSet = A.Fake<DbSet<BuildConfig>>(builder => builder
+            DbSet<BuildConfig> buildsSet = A.Fake<DbSet<BuildConfig>>(builder => builder
                 .Implements(typeof(IQueryable<BuildConfig>))
                 .Implements(typeof(IDbAsyncEnumerable<BuildConfig>)));
             A.CallTo(() => ((IDbAsyncEnumerable<BuildConfig>)buildsSet).GetAsyncEnumerator())
@@ -337,20 +338,20 @@ namespace CIDashboard.Data.Tests
             A.CallTo(() => ((IQueryable<BuildConfig>)buildsSet).ElementType).Returns(builds.ElementType);
             A.CallTo(() => ((IQueryable<BuildConfig>)buildsSet).GetEnumerator()).Returns(builds.GetEnumerator());
 
-            var context = A.Fake<ICiDashboardContext>();
+            ICiDashboardContext context = A.Fake<ICiDashboardContext>();
             A.CallTo(() => context.BuildConfigs).Returns(buildsSet);
 
-            var factory = A.Fake<ICiDashboardContextFactory>();
+            ICiDashboardContextFactory factory = A.Fake<ICiDashboardContextFactory>();
             A.CallTo(() => factory.Create()).Returns(context);
 
             _fixture.Inject(factory);
             _fixture.Inject(context);
 
-            var service = _fixture.Create<CiDashboardService>();
+            CiDashboardService service = _fixture.Create<CiDashboardService>();
 
-            var newName = _fixture.Create<string>();
-            var newCiExternalId = _fixture.Create<string>();
-            var result = await service.UpdateBuildConfigExternalId(build.Id, newName, newCiExternalId);
+            string newName = _fixture.Create<string>();
+            string newCiExternalId = _fixture.Create<string>();
+            bool result = await service.UpdateBuildConfigExternalId(build.Id, newName, newCiExternalId);
 
             A.CallTo(() => context.SaveChanges())
                 .MustHaveHappened();
@@ -368,12 +369,12 @@ namespace CIDashboard.Data.Tests
         public async Task UpdateBuildconfigOrder_ReturnsBuildconfigUpdatedWithNewOrder()
         {
             _fixture.Customize<BuildConfig>(c => c.Without(f => f.Project));
-            var builds = _fixture
+            IQueryable<BuildConfig> builds = _fixture
                 .CreateMany<BuildConfig>()
                 .AsQueryable();
-            var build = builds.First();
+            BuildConfig build = builds.First();
 
-            var buildsSet = A.Fake<DbSet<BuildConfig>>(builder => builder
+            DbSet<BuildConfig> buildsSet = A.Fake<DbSet<BuildConfig>>(builder => builder
                 .Implements(typeof(IQueryable<BuildConfig>))
                 .Implements(typeof(IDbAsyncEnumerable<BuildConfig>)));
             A.CallTo(() => ((IDbAsyncEnumerable<BuildConfig>)buildsSet).GetAsyncEnumerator())
@@ -384,19 +385,19 @@ namespace CIDashboard.Data.Tests
             A.CallTo(() => ((IQueryable<BuildConfig>)buildsSet).ElementType).Returns(builds.ElementType);
             A.CallTo(() => ((IQueryable<BuildConfig>)buildsSet).GetEnumerator()).Returns(builds.GetEnumerator());
 
-            var context = A.Fake<ICiDashboardContext>();
+            ICiDashboardContext context = A.Fake<ICiDashboardContext>();
             A.CallTo(() => context.BuildConfigs).Returns(buildsSet);
 
-            var factory = A.Fake<ICiDashboardContextFactory>();
+            ICiDashboardContextFactory factory = A.Fake<ICiDashboardContextFactory>();
             A.CallTo(() => factory.Create()).Returns(context);
 
             _fixture.Inject(factory);
             _fixture.Inject(context);
 
-            var service = _fixture.Create<CiDashboardService>();
+            CiDashboardService service = _fixture.Create<CiDashboardService>();
 
-            var newPosition = _fixture.Create<int>();
-            var result = await service.UpdateBuildConfigOrder(build.Id, newPosition);
+            int newPosition = _fixture.Create<int>();
+            bool result = await service.UpdateBuildConfigOrder(build.Id, newPosition);
 
             A.CallTo(() => context.SaveChanges())
                 .MustHaveHappened();

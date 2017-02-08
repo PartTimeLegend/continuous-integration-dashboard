@@ -20,15 +20,15 @@ namespace CIDashboard.Domain.Services
         public TeamCityService(ITeamCityClient client)
         {
             Logger.Debug("Connecting to TeamCity as guest");
-            this._client = client;
-            this._client.ConnectAsGuest();
+            _client = client;
+            _client.ConnectAsGuest();
         }
         
         public TeamCityService(ITeamCityClient client, string username, string password)
         {
             Logger.Debug("Connecting to TeamCity with username {username}", username);
-            this._client = client; 
-            this._client.Connect(username, password);
+            _client = client; 
+            _client.Connect(username, password);
         }
 
         public CiSource Source
@@ -42,20 +42,20 @@ namespace CIDashboard.Domain.Services
         public async Task<IEnumerable<CiBuildConfig>> GetAllBuildConfigs()
         {
             Logger.Debug("Retrieving from TeamCity all BuildConfigs");
-            var buildConfigs = await Task.Run(() => this._client.BuildConfigs.All());
+            List<BuildConfig> buildConfigs = await Task.Run(() => _client.BuildConfigs.All());
 
-            var projectsIds = buildConfigs.Select(b => b.ProjectId).Distinct();
-            var projectsToRetrieve = projectsIds
-                .Select(this.GetProjectDetails)
+            IEnumerable<string> projectsIds = buildConfigs.Select(b => b.ProjectId).Distinct();
+            List<Task<Project>> projectsToRetrieve = projectsIds
+                .Select(GetProjectDetails)
                 .ToList();
 
-            var projects = await Task.WhenAll(projectsToRetrieve);
-            foreach(var project in projects.Where(project => project.Archived)) 
+            Project[] projects = await Task.WhenAll(projectsToRetrieve);
+            foreach(Project project in projects.Where(project => project.Archived)) 
             {
                 buildConfigs.RemoveAll(b => b.ProjectId == project.Id);
             }
 
-            var mappedBuilds = Mapper.Map<IEnumerable<BuildConfig>, IEnumerable<CiBuildConfig>>(buildConfigs);
+            IEnumerable<CiBuildConfig> mappedBuilds = Mapper.Map<IEnumerable<BuildConfig>, IEnumerable<CiBuildConfig>>(buildConfigs);
 
             Logger.Debug("Retrieved from TeamCity all BuildConfigs");
             return mappedBuilds;
@@ -65,7 +65,7 @@ namespace CIDashboard.Domain.Services
         {
             // get last run build
             Logger.Debug("Retrieving from TeamCity last build for {buildId}", buildId);
-            var build = await GetLastBuild(buildId);
+            Build build = await GetLastBuild(buildId);
             if(build == null)
             {
                 return null;
@@ -73,16 +73,16 @@ namespace CIDashboard.Domain.Services
 
             // get build run details
             Logger.Debug("Retrieving from TeamCity build details for {buildId}", build.Id);
-            var buildDetails = await GetBuildDetails(build);
+            Build buildDetails = await GetBuildDetails(build);
 
-            var mappedBuild = Mapper.Map<Build, CiBuildResult>(buildDetails);
+            CiBuildResult mappedBuild = Mapper.Map<Build, CiBuildResult>(buildDetails);
 
             // get build run statistics
             Logger.Debug("Retrieving from TeamCity build statistics for {buildId}", build.Id);
-            var buildStats = await GetBuildStatistics(build);
+            List<Property> buildStats = await GetBuildStatistics(build);
             if (buildStats != null)
             {
-                var dict = buildStats.ToDictionary(item => item.Name, item => item.Value);
+                Dictionary<string, string> dict = buildStats.ToDictionary(item => item.Name, item => item.Value);
                 int value;
                 if (dict.ContainsKey("PassedTestCount") && int.TryParse(dict["PassedTestCount"], out value))
                     mappedBuild.NumberTestPassed = value;
@@ -107,7 +107,7 @@ namespace CIDashboard.Domain.Services
 
         private async Task<List<Property>> GetBuildStatistics(Build build)
         {
-            var buildStats = await Task.Run(
+            List<Property> buildStats = await Task.Run(
                 () =>
                 {
                     try
@@ -126,7 +126,7 @@ namespace CIDashboard.Domain.Services
 
         private async Task<Build> GetBuildDetails(Build build)
         {
-            var buildDetails = await Task.Run(
+            Build buildDetails = await Task.Run(
                 () =>
                 {
                     try
@@ -145,7 +145,7 @@ namespace CIDashboard.Domain.Services
 
         private async Task<Build> GetLastBuild(string buildId)
         {
-            var build = await Task.Run(
+            Build build = await Task.Run(
                 () =>
                 {
                     try
@@ -171,7 +171,7 @@ namespace CIDashboard.Domain.Services
                 {
                     return _client
                         .Builds
-                        .ByBuildLocator(BuildLocator.WithDimensions(buildType: BuildTypeLocator.WithId(buildId), running: true))
+                        .ByBuildLocator(BuildLocator.WithDimensions(BuildTypeLocator.WithId(buildId), running: true))
                         .Count > 0;
                 }
                 catch (Exception ex)
@@ -185,7 +185,7 @@ namespace CIDashboard.Domain.Services
 
         private async Task<Project> GetProjectDetails(string projectId)
         {
-            var projectDetails = await Task.Run(
+            Project projectDetails = await Task.Run(
                 () =>
                 {
                     try

@@ -1,12 +1,15 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using CIDashboard.Web.Application;
 using CIDashboard.Web.MappingProfiles;
+using CIDashboard.Web.Models;
 using FluentAssertions;
 using NUnit.Framework;
 using Ploeh.AutoFixture;
 using Ploeh.AutoFixture.AutoFakeItEasy;
+// ReSharper disable ObjectCreationAsStatement
 
 namespace CIDashboard.Web.Tests.Application
 {
@@ -18,15 +21,18 @@ namespace CIDashboard.Web.Tests.Application
         [SetUp]
         public void Setup()
         {
-            Mapper.Configuration.AddProfile<ViewModelProfilers>();
-
+            new MapperConfiguration(cfg =>
+            {
+                cfg.AddProfile<ViewModelProfilers>();
+            });
+            
             _fixture = new Fixture()
                 .Customize(new AutoFakeItEasyCustomization());
 
             // clean any existing info in static dictionaties
-            var connManager = new ConnectionsManager();
-            var connIds = connManager.BuildsPerConnId.Keys;
-            foreach(var connId in connIds)
+            ConnectionsManager connManager = new ConnectionsManager();
+            ICollection<string> connIds = connManager.BuildsPerConnId.Keys;
+            foreach(string connId in connIds)
             {
                 connManager.RemoveAllBuildConfigs(connId).Wait(); 
             }
@@ -35,15 +41,15 @@ namespace CIDashboard.Web.Tests.Application
         [Test]
         public async Task AddBuildConfigs_AddsConnectionInfoStaticDictionaries()
         {
-            var connectionId = _fixture.Create<string>();
-            var builds = _fixture
-                .Build<Models.BuildConfig>()
+            string connectionId = _fixture.Create<string>();
+            List<BuildConfig> builds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany()
                 .ToList();
-            var buildsIds = builds.Select(b => b.CiExternalId)
+            List<string> buildsIds = builds.Select(b => b.CiExternalId)
                 .ToList();
 
-            var connManager = new ConnectionsManager();
+            ConnectionsManager connManager = new ConnectionsManager();
             await connManager.AddBuildConfigs(connectionId, builds);
 
             connManager.BuildsPerConnId.ContainsKey(connectionId).Should().BeTrue();
@@ -54,15 +60,15 @@ namespace CIDashboard.Web.Tests.Application
         [Test]
         public async Task AddBuildConfigs_DontDuplicateBuildsToBeRefreshed()
         {
-            var connectionId = _fixture.Create<string>();
-            var builds = _fixture
-                .Build<Models.BuildConfig>()
+            string connectionId = _fixture.Create<string>();
+            List<BuildConfig> builds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany()
                 .ToList();
-            var buildsIds = builds.Select(b => b.CiExternalId)
+            List<string> buildsIds = builds.Select(b => b.CiExternalId)
                 .ToList();
 
-            var connManager = new ConnectionsManager();
+            ConnectionsManager connManager = new ConnectionsManager();
             await connManager.AddBuildConfigs(_fixture.Create<string>(), new[] { builds.First() });
 
             await connManager.AddBuildConfigs(connectionId, builds);
@@ -75,22 +81,22 @@ namespace CIDashboard.Web.Tests.Application
         [Test]
         public async Task AddBuildConfigs_WhenConnectionAlreadyExists_RefreshsBuildConfigs()
         {
-            var connectionId = _fixture.Create<string>();
-            var builds = _fixture
-                .Build<Models.BuildConfig>()
+            string connectionId = _fixture.Create<string>();
+            List<BuildConfig> builds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany()
                 .ToList();
-            var buildsIds = builds.Select(b => b.CiExternalId)
+            List<string> buildsIds = builds.Select(b => b.CiExternalId)
                 .ToList();
-            var olderBuilds = _fixture
-                .Build<Models.BuildConfig>()
+            List<BuildConfig> olderBuilds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany()
                 .ToList();
-            var olderBuildsIds = olderBuilds
+            List<string> olderBuildsIds = olderBuilds
                 .Select(b => b.CiExternalId)
                 .ToList();
 
-            var connManager = new ConnectionsManager();
+            ConnectionsManager connManager = new ConnectionsManager();
             await connManager.AddBuildConfigs(connectionId, olderBuilds);
             connManager.BuildsPerConnId.ContainsKey(connectionId).Should().BeTrue();
             connManager.BuildsPerConnId[connectionId].ShouldAllBeEquivalentTo(olderBuildsIds);
@@ -104,23 +110,23 @@ namespace CIDashboard.Web.Tests.Application
         [Test]
         public async Task UpdateBuildConfigs_DontDuplicateBuildsToBeRefreshed()
         {
-            var connectionId = _fixture.Create<string>();
-            var builds = _fixture
-                .Build<Models.BuildConfig>()
+            string connectionId = _fixture.Create<string>();
+            List<BuildConfig> builds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany()
                 .ToList();
 
-            var otherBuilds = _fixture
-                .Build<Models.BuildConfig>()
+            List<BuildConfig> otherBuilds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany()
                 .ToList();
             otherBuilds.Add(builds.First());
 
-            var buildsIds = builds.Select(b => b.CiExternalId).ToList();
+            List<string> buildsIds = builds.Select(b => b.CiExternalId).ToList();
             buildsIds.AddRange(otherBuilds.Select(b => b.CiExternalId));
             buildsIds = buildsIds.Distinct().ToList();
 
-            var connManager = new ConnectionsManager();
+            ConnectionsManager connManager = new ConnectionsManager();
             await connManager.AddBuildConfigs(connectionId, builds);
 
             await connManager.UpdateBuildConfigs(connectionId, otherBuilds);
@@ -133,12 +139,12 @@ namespace CIDashboard.Web.Tests.Application
         [Test]
         public async Task RemoveAllBuildConfigs_ShouldRemoveAllBuildsForConnectionId()
         {
-            var connectionId = _fixture.Create<string>();
-            var builds = _fixture
-                .Build<Models.BuildConfig>()
+            string connectionId = _fixture.Create<string>();
+            IEnumerable<BuildConfig> builds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany();
 
-            var connManager = new ConnectionsManager();
+            ConnectionsManager connManager = new ConnectionsManager();
             await connManager.AddBuildConfigs(connectionId, builds);
 
             connManager.BuildsPerConnId.Keys.Should()
@@ -153,27 +159,27 @@ namespace CIDashboard.Web.Tests.Application
         [Test]
         public async Task RemoveAllBuildConfigs_WhenOtherConnectionIdsAreUsingIt_ShouldNotRemoveTheBuild()
         {
-            var duplicateBuild = _fixture.Create<Models.BuildConfig>();
-            var duplicateBuildId = duplicateBuild.CiExternalId;
+            BuildConfig duplicateBuild = _fixture.Create<BuildConfig>();
+            string duplicateBuildId = duplicateBuild.CiExternalId;
 
-            var connectionId = _fixture.Create<string>();
-            var builds = _fixture
-                .Build<Models.BuildConfig>()
+            string connectionId = _fixture.Create<string>();
+            List<BuildConfig> builds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany()
                 .ToList();
             builds.Add(duplicateBuild);
 
-            var otherConnectionId = _fixture.Create<string>();
-            var otherBuilds = _fixture
-                .Build<Models.BuildConfig>()
+            string otherConnectionId = _fixture.Create<string>();
+            List<BuildConfig> otherBuilds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany()
                 .ToList();
             otherBuilds.Add(duplicateBuild);
-            var otherBuildsIds = otherBuilds
+            List<string> otherBuildsIds = otherBuilds
                 .Select(b => b.CiExternalId)
                 .ToList();
 
-            var connManager = new ConnectionsManager();
+            ConnectionsManager connManager = new ConnectionsManager();
             await connManager.AddBuildConfigs(connectionId, builds);
             await connManager.AddBuildConfigs(otherConnectionId, otherBuilds);
 
@@ -187,13 +193,13 @@ namespace CIDashboard.Web.Tests.Application
         [Test]
         public async Task RemoveBuildConfig_ShouldRemoveTheBuild()
         {
-            var connectionId = _fixture.Create<string>();
-            var builds = _fixture
-                .Build<Models.BuildConfig>()
+            string connectionId = _fixture.Create<string>();
+            List<BuildConfig> builds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany()
                 .ToList();
 
-            var connManager = new ConnectionsManager();
+            ConnectionsManager connManager = new ConnectionsManager();
             await connManager.AddBuildConfigs(connectionId, builds);
 
             connManager.BuildsPerConnId.Keys.Should()
@@ -212,27 +218,27 @@ namespace CIDashboard.Web.Tests.Application
         [Test]
         public async Task RemoveBuildConfig_WhenOtherConnectionIdsAreUsingIt_ShouldNotRemoveTheBuild()
         {
-            var duplicateBuild = _fixture.Create<Models.BuildConfig>();
+            BuildConfig duplicateBuild = _fixture.Create<BuildConfig>();
 
-            var connectionId = _fixture.Create<string>();
-            var builds = _fixture
-                .Build<Models.BuildConfig>()
+            string connectionId = _fixture.Create<string>();
+            List<BuildConfig> builds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany()
                 .ToList();
             builds.Add(duplicateBuild);
 
-            var otherConnectionId = _fixture.Create<string>();
-            var otherBuilds = _fixture
-                .Build<Models.BuildConfig>()
+            string otherConnectionId = _fixture.Create<string>();
+            List<BuildConfig> otherBuilds = _fixture
+                .Build<BuildConfig>()
                 .CreateMany()
                 .ToList();
             otherBuilds.Add(duplicateBuild);
 
-            var connManager = new ConnectionsManager();
+            ConnectionsManager connManager = new ConnectionsManager();
             await connManager.AddBuildConfigs(connectionId, builds);
             await connManager.AddBuildConfigs(otherConnectionId, otherBuilds);
 
-            var removeBuild = builds.First();
+            BuildConfig removeBuild = builds.First();
             await connManager.RemoveBuildConfig(connectionId, removeBuild);
 
             connManager.BuildsPerConnId.Keys.Count.Should().Be(2);

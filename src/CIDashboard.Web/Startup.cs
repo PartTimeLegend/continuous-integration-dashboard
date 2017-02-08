@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Configuration;
-using System.Linq;
 using Autofac;
 using Autofac.Integration.SignalR;
 using AutoMapper;
@@ -8,6 +7,7 @@ using CIDashboard.Data.CompositionRoot;
 using CIDashboard.Data.Interfaces;
 using CIDashboard.Domain.CompositionRoot;
 using CIDashboard.Domain.MappingProfiles;
+using CIDashboard.Web;
 using CIDashboard.Web.Application.Interfaces;
 using CIDashboard.Web.CompositionRoot;
 using CIDashboard.Web.Hubs;
@@ -19,7 +19,7 @@ using Microsoft.Owin;
 using Owin;
 using Serilog;
 
-[assembly: OwinStartup(typeof(CIDashboard.Web.Startup))]
+[assembly: OwinStartup(typeof(Startup))]
 
 namespace CIDashboard.Web
 {
@@ -29,12 +29,12 @@ namespace CIDashboard.Web
         {
             ConfigureLog();
 
-            var builder = new ContainerBuilder();
+            ContainerBuilder builder = new ContainerBuilder();
 
             // STANDARD SIGNALR SETUP:
             // Get your HubConfiguration. In OWIN, you'll create one
             // rather than using GlobalHost.
-            var config = new HubConfiguration();
+            HubConfiguration config = new HubConfiguration();
 
             // Register your SignalR hubs.
             // builder.RegisterHubs(Assembly.GetExecutingAssembly());
@@ -46,7 +46,7 @@ namespace CIDashboard.Web
             builder.RegisterModule<CiServicesModule>();
             
             // Set the dependency resolver to be Autofac.
-            var container = builder.Build();
+            IContainer container = builder.Build();
             config.Resolver = new AutofacDependencyResolver(container);
 
             // OWIN SIGNALR SETUP:
@@ -60,7 +60,7 @@ namespace CIDashboard.Web
             // force DB creation if it does not exists
             container.Resolve<ICiDashboardContextBootstrap>().InitiateDatabase();
 
-            ConfigureHangfireJobs(app, container);
+            ConfigureHangfireJobs(container);
 
             app.MapSignalR("/signalr", config);
         }
@@ -74,18 +74,16 @@ namespace CIDashboard.Web
             });
         }
 
-        private void ConfigureHangfireJobs(IAppBuilder app, IContainer container)
+        private void ConfigureHangfireJobs(IContainer container)
         {
-            app.UseHangfire(config =>
-            {
-                config.UseAutofacActivator(container);
-                config.UseSqlServerStorage(
+            GlobalConfiguration.Configuration
+                .UseAutofacActivator(container)
+                .UseSqlServerStorage(
                     "CiDashboardContext",
-                    new SqlServerStorageOptions { QueuePollInterval = TimeSpan.FromSeconds(5) });
-                config.UseServer();
-            });
+                    new SqlServerStorageOptions {QueuePollInterval = TimeSpan.FromSeconds(5)});
 
-            var refreshInfoCron = ConfigurationManager.AppSettings["RefreshInfoCron"];
+
+            string refreshInfoCron = ConfigurationManager.AppSettings["RefreshInfoCron"];
             if(string.IsNullOrEmpty(refreshInfoCron))
                 refreshInfoCron = "*/5 * * * *";
             

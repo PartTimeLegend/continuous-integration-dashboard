@@ -13,6 +13,7 @@ using Ploeh.AutoFixture.AutoFakeItEasy;
 using TeamCitySharp;
 using TeamCitySharp.DomainEntities;
 using TeamCitySharp.Locators;
+// ReSharper disable ObjectCreationAsStatement
 
 namespace CIDashboard.Domain.Tests.Services
 {
@@ -25,10 +26,10 @@ namespace CIDashboard.Domain.Tests.Services
         [SetUp]
         public void Setup()
         {
-            this._fixture = new Fixture()
+            _fixture = new Fixture()
                 .Customize(new AutoFakeItEasyCustomization());
-            this._fixture.Behaviors.Remove(new ThrowingRecursionBehavior());
-            this._fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+            _fixture.Behaviors.Remove(new ThrowingRecursionBehavior());
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         
             Mapper.Initialize(cfg => cfg.AddProfile<TeamCityProfiler>());
 
@@ -38,26 +39,27 @@ namespace CIDashboard.Domain.Tests.Services
         [Test]
         public void ParameterlessConstructor_LoginsAsGuest()
         {
-            new TeamCityService(this._teamcityClient);
+            new TeamCityService(_teamcityClient);
             A.CallTo(() => _teamcityClient.ConnectAsGuest()).MustHaveHappened();
         }
 
         [Test]
         public void ConstructorWithParameters_LoginsWithUserPwd()
         {
-            new TeamCityService(this._teamcityClient, "user", "pwd");
+            new TeamCityService(_teamcityClient, "user", "pwd");
             A.CallTo(() => _teamcityClient.Connect("user", "pwd")).MustHaveHappened();
         }
 
         [Test]
         public async Task GetAllBuildConfigs_ReturnsProjectAndBuildTypesCorrectlyMapped_FilteringTheOnesThatTheProjectIsArchived()
         {
-            var buildConfigs = _fixture
+            IEnumerable<BuildConfig> buildConfigs = _fixture
                 .Build<BuildConfig>()
                 .CreateMany();
 
-            var expectedResult = buildConfigs.Select(
-                b => new CiBuildConfig()
+            IEnumerable<BuildConfig> enumerable = buildConfigs as IList<BuildConfig> ?? buildConfigs.ToList();
+            List<CiBuildConfig> expectedResult = enumerable.Select(
+                b => new CiBuildConfig
                 {
                     CiSource = CiSource.TeamCity,
                     Id = b.Id,
@@ -68,11 +70,11 @@ namespace CIDashboard.Domain.Tests.Services
                 .ToList();
 
             A.CallTo(() => _teamcityClient.BuildConfigs.All())
-                .Returns(buildConfigs.ToList());
+                .Returns(enumerable.ToList());
 
-            foreach(var buildConfig in buildConfigs)
+            foreach(BuildConfig buildConfig in enumerable)
             {
-                var project = _fixture
+                Project project = _fixture
                     .Build<Project>()
                     .With(p => p.Id, buildConfig.ProjectId)
                     .Create();
@@ -83,8 +85,8 @@ namespace CIDashboard.Domain.Tests.Services
                     expectedResult.Remove(expectedResult.First(b => b.Id == buildConfig.Id));
             }
 
-            var teamCityService = new TeamCityService(_teamcityClient);
-            var result = await teamCityService.GetAllBuildConfigs();
+            TeamCityService teamCityService = new TeamCityService(_teamcityClient);
+            IEnumerable<CiBuildConfig> result = await teamCityService.GetAllBuildConfigs();
 
             result.ShouldBeEquivalentTo(expectedResult);     
         }
@@ -93,8 +95,8 @@ namespace CIDashboard.Domain.Tests.Services
         [TestCase("FAILURE", CiBuildResultStatus.Failure)]
         public async Task LastBuildResult_ReturnsInfoCorrectlyMapped(string status, CiBuildResultStatus resultStatus)
         {
-            var buildId = _fixture.Create<string>();
-            var build = _fixture
+            string buildId = _fixture.Create<string>();
+            Build build = _fixture
                 .Build<Build>()
                 .With(b => b.Status, status)
                 .Create();
@@ -105,10 +107,10 @@ namespace CIDashboard.Domain.Tests.Services
             A.CallTo(() => _teamcityClient.Builds.ByBuildId(build.Id))
                 .Returns(build);
 
-            var teamCityService = new TeamCityService(_teamcityClient);
-            var result = await teamCityService.LastBuildResult(buildId);
+            TeamCityService teamCityService = new TeamCityService(_teamcityClient);
+            CiBuildResult result = await teamCityService.LastBuildResult(buildId);
 
-            var expectedResult = new CiBuildResult
+            CiBuildResult expectedResult = new CiBuildResult
             {
                 CiSource = CiSource.TeamCity,
                 Id = build.Id,
@@ -127,8 +129,8 @@ namespace CIDashboard.Domain.Tests.Services
         [Test]
         public async Task LastBuildResult_ReturnsStatisticsCorrectlyMapped()
         {
-            var buildId = _fixture.Create<string>();
-            var build = _fixture
+            string buildId = _fixture.Create<string>();
+            Build build = _fixture
                 .Build<Build>()
                 .With(b => b.Status, "SUCCESS")
                 .Create();
@@ -139,21 +141,21 @@ namespace CIDashboard.Domain.Tests.Services
             A.CallTo(() => _teamcityClient.Builds.ByBuildId(build.Id))
                 .Returns(build);
 
-            var stats = new List<Property>
+            List<Property> stats = new List<Property>
             {
                 new Property{Name = "PassedTestCount", Value = "1"},
                 new Property{Name = "FailedTestCount", Value = "2"},
                 new Property{Name = "IgnoredTestCount", Value = "3"},
                 new Property{Name = "CodeCoverageAbsSCovered", Value = "4"},
-                new Property{Name = "CodeCoverageAbsSTotal", Value = "5"},
+                new Property{Name = "CodeCoverageAbsSTotal", Value = "5"}
             };
             A.CallTo(() => _teamcityClient.Statistics.GetByBuildId(build.Id))
                 .Returns(stats);
 
-            var teamCityService = new TeamCityService(_teamcityClient);
-            var result = await teamCityService.LastBuildResult(buildId);
+            TeamCityService teamCityService = new TeamCityService(_teamcityClient);
+            CiBuildResult result = await teamCityService.LastBuildResult(buildId);
 
-            var expectedResult = new CiBuildResult
+            CiBuildResult expectedResult = new CiBuildResult
             {
                 CiSource = CiSource.TeamCity,
                 Id = build.Id,
@@ -177,8 +179,8 @@ namespace CIDashboard.Domain.Tests.Services
         [Test]
         public async Task LastBuildResult_WhenBuildIsRunning_ReturnsRunningBuildStatus()
         {
-            var buildId = _fixture.Create<string>();
-            var build = _fixture
+            string buildId = _fixture.Create<string>();
+            Build build = _fixture
                 .Build<Build>()
                 .Create();
 
@@ -192,10 +194,10 @@ namespace CIDashboard.Domain.Tests.Services
                 _teamcityClient.Builds.ByBuildLocator(A<BuildLocator>.Ignored))
                 .Returns(_fixture.Build<Build>().CreateMany().ToList());
 
-            var teamCityService = new TeamCityService(_teamcityClient);
-            var result = await teamCityService.LastBuildResult(buildId);
+            TeamCityService teamCityService = new TeamCityService(_teamcityClient);
+            CiBuildResult result = await teamCityService.LastBuildResult(buildId);
 
-            var expectedResult = new CiBuildResult
+            CiBuildResult expectedResult = new CiBuildResult
             {
                 CiSource = CiSource.TeamCity,
                 Id = build.Id,

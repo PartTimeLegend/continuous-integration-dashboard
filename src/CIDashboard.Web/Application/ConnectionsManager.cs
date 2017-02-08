@@ -12,9 +12,11 @@ namespace CIDashboard.Web.Application
 {
     public class ConnectionsManager : IConnectionsManager
     {
-        private static readonly ConcurrentDictionary<string, List<string>> buildsPerConnId = new ConcurrentDictionary<string, List<string>>();
+        // ReSharper disable once InconsistentNaming
+        private static readonly ConcurrentDictionary<string, List<string>> _buildsPerConnId = new ConcurrentDictionary<string, List<string>>();
 
-        private static readonly ConcurrentDictionary<string, string> buildsToBeRefreshed = new ConcurrentDictionary<string, string>();
+        // ReSharper disable once InconsistentNaming
+        private static readonly ConcurrentDictionary<string, string> _buildsToBeRefreshed = new ConcurrentDictionary<string, string>();
 
         private static readonly ILogger Logger = Log.ForContext<ConnectionsManager>();
 
@@ -22,28 +24,16 @@ namespace CIDashboard.Web.Application
         
         public ICiServerService CiServerService { get; set; }
 
-        public ConcurrentDictionary<string, List<string>> BuildsPerConnId
-        {
-            get
-            {
-                return buildsPerConnId;
-            }
-        }
+        public ConcurrentDictionary<string, List<string>> BuildsPerConnId => _buildsPerConnId;
 
-        public ConcurrentDictionary<string, string> BuildsToBeRefreshed
-        {
-            get
-            {
-                return buildsToBeRefreshed;
-            }
-        }
+        public ConcurrentDictionary<string, string> BuildsToBeRefreshed => _buildsToBeRefreshed;
 
         public async Task AddBuildConfigs(string connectionId, IEnumerable<BuildConfig> buildsConfigs)
         {
             // remove any existing builds for this connection
             await RemoveAllBuildConfigs(connectionId);
 
-            var buildCiIds = buildsConfigs
+            List<string> buildCiIds = buildsConfigs
                     .Where(b => !string.IsNullOrEmpty(b.CiExternalId) && !b.CiExternalId.StartsWith("-"))
                     .Select(b => b.CiExternalId)
                     .ToList()
@@ -64,7 +54,7 @@ namespace CIDashboard.Web.Application
             return Task.Run(
                 () =>
                 {
-                    var buildCiIds = buildsConfigs
+                    List<string> buildCiIds = buildsConfigs
                         .Where(b => !string.IsNullOrEmpty(b.CiExternalId) && !b.CiExternalId.StartsWith("-"))
                         .Select(b => b.CiExternalId)
                         .ToList()
@@ -94,11 +84,11 @@ namespace CIDashboard.Web.Application
             return Task.Run(
                 () =>
                 {
-                    var buildId = buildConfig.CiExternalId;
+                    string buildId = buildConfig.CiExternalId;
                     if(BuildsPerConnId.ContainsKey(connectionId) && BuildsPerConnId[connectionId].Contains(buildId))
                         BuildsPerConnId[connectionId].Remove(buildId);
 
-                    var exists = BuildsPerConnId.Values
+                    bool exists = BuildsPerConnId.Values
                         .SelectMany(b => b)
                         .Contains(buildId);
                     if(exists)
@@ -116,7 +106,7 @@ namespace CIDashboard.Web.Application
             return Task.Run(
                 () =>
                 {
-                    var builds = new List<string>();
+                    List<string> builds = new List<string>();
                     if(BuildsPerConnId.ContainsKey(connectionId))
                         BuildsPerConnId.TryRemove(connectionId, out builds);
 
@@ -124,7 +114,7 @@ namespace CIDashboard.Web.Application
                         builds,
                         build =>
                         {
-                            var exists = BuildsPerConnId.Values
+                            bool exists = BuildsPerConnId.Values
                                 .SelectMany(b => b)
                                 .Contains(build);
                             if(exists)

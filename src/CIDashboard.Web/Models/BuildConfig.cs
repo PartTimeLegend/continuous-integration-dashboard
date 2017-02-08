@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace CIDashboard.Web.Models
+﻿namespace CIDashboard.Web.Models
 {
     public class BuildConfig
     {

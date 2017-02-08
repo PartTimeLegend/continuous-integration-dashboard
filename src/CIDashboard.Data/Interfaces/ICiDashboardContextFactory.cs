@@ -1,6 +1,4 @@
-﻿using System.Data.Entity;
-
-namespace CIDashboard.Data.Interfaces
+﻿namespace CIDashboard.Data.Interfaces
 {
     public interface ICiDashboardContextFactory
     {

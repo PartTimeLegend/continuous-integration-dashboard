@@ -20,10 +20,10 @@ namespace CIDashboard.Web.Application
             {
                 Logger.Debug("Creating a new project {project}", project);
 
-                var mappedInProj = Mapper.Map<Project, Data.Entities.Project>(project);
-                var createdProject = await CiDashboardService.AddProject(username, mappedInProj);
+                Data.Entities.Project mappedInProj = Mapper.Map<Project, Data.Entities.Project>(project);
+                Data.Entities.Project createdProject = await CiDashboardService.AddProject(username, mappedInProj);
 
-                var mappedOutProj = Mapper.Map<Data.Entities.Project, Project>(createdProject);
+                Project mappedOutProj = Mapper.Map<Data.Entities.Project, Project>(createdProject);
                 Logger.Debug("Project created {project}", mappedOutProj);
                 return mappedOutProj;
             }
@@ -79,11 +79,11 @@ namespace CIDashboard.Web.Application
             {
                 Logger.Debug("Removing project with ID {projectId}", projectId);
 
-                var project = await CiDashboardService.RemoveProject(projectId);
+                Data.Entities.Project project = await CiDashboardService.RemoveProject(projectId);
                 if(project == null)
                     return null;
 
-                var mappedOutProj = Mapper.Map<Data.Entities.Project, Project>(project);
+                Project mappedOutProj = Mapper.Map<Data.Entities.Project, Project>(project);
 
                 Logger.Debug("Removed project with ID {projectId}", projectId);
                 return mappedOutProj;
@@ -102,10 +102,10 @@ namespace CIDashboard.Web.Application
             {
                 Logger.Debug("Adding build {build} to project {projectId}", build, projectId);
 
-                var mappedInBuild = Mapper.Map<BuildConfig, Data.Entities.BuildConfig>(build);
-                var createdBuild = await CiDashboardService.AddBuildConfigToProject(projectId, mappedInBuild);
+                Data.Entities.BuildConfig mappedInBuild = Mapper.Map<BuildConfig, Data.Entities.BuildConfig>(build);
+                Data.Entities.BuildConfig createdBuild = await CiDashboardService.AddBuildConfigToProject(projectId, mappedInBuild);
 
-                var mappedOutBuild = Mapper.Map<Data.Entities.BuildConfig, BuildConfig>(createdBuild);
+                BuildConfig mappedOutBuild = Mapper.Map<Data.Entities.BuildConfig, BuildConfig>(createdBuild);
                 Logger.Debug("Added build {build} to project {projectId}", build, projectId);
                 return mappedOutBuild;
             }
@@ -123,11 +123,11 @@ namespace CIDashboard.Web.Application
             {
                 Logger.Debug("Removing build with ID {buildId}", buildId);
 
-                var build = await CiDashboardService.RemoveBuildConfig(buildId);
+                Data.Entities.BuildConfig build = await CiDashboardService.RemoveBuildConfig(buildId);
                 if (build == null)
                     return null;
 
-                var mappedOutBuild = Mapper.Map<Data.Entities.BuildConfig, BuildConfig>(build);
+                BuildConfig mappedOutBuild = Mapper.Map<Data.Entities.BuildConfig, BuildConfig>(build);
 
                 Logger.Debug("Removed build with ID {buildId}", buildId);
                 return mappedOutBuild;

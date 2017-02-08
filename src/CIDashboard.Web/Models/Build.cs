@@ -26,29 +26,16 @@ namespace CIDashboard.Web.Models
 
         public int NumberTestFailed { get; set; } //FailedTestCount
 
-        public int NumberTestTotal
-        {
-            get
-            {
-                return this.NumberTestPassed + this.NumberTestFailed + this.NumberTestIgnored;
-            }
-        }
+        public int NumberTestTotal => NumberTestPassed + NumberTestFailed + NumberTestIgnored;
 
         public int NumberStatementsCovered { get; set; } //CodeCoverageAbsSCovered
 
         public int NumberStatementsTotal { get; set; } //CodeCoverageAbsSTotal
 
-        public double CodeCoverage
-        {
-            get
-            {
-                return this.NumberStatementsTotal == 0
-                    ? 0
-                    : Math.Round(
-                        (this.NumberStatementsCovered / (double)this.NumberStatementsTotal) * 100,
-                        2);
-            }
-        }
-
+        public double CodeCoverage => NumberStatementsTotal == 0
+            ? 0
+            : Math.Round(
+                (NumberStatementsCovered / (double)NumberStatementsTotal) * 100,
+                2);
     }
 }
