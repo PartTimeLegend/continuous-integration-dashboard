@@ -18,4 +18,4 @@ if %PROCESSOR_ARCHITECTURE%==x86 (
  set msbuild=C:\Windows\Microsoft.NET\Framework64\v4.0.30319\msbuild.exe
 )
 
-%msbuild% default.build /t:Install /p:Environment=%1 /p:VisualStudioVersion=12.0
+%msbuild% default.build /t:Install /p:Environment=%1 /p:VisualStudioVersion=14.0
